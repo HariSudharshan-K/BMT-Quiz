@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VENTURIUM — Best Management Team | BQuiz Round</title>
+<style>
+  :root {
+    --bg: #0b1828;
+    --panel: rgba(10, 24, 40, 0.93);
+    --parchment: #F7F2E8;
+    --brass: #B99A55;
+    --brass-bright: #E0C477;
+    --wine: #17314d;
+    --ink: #172435;
+    --cell-empty: #F7F2E8;
+    --cell-word: #E5D8B8;
+    --cell-block: #12263c;
+    --cell-correct: #4A765A;
+    --cell-wrong: #8A3939;
+    --cell-active: #D7B56D;
+    --line: #B99A55;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background:
+      linear-gradient(rgba(5,12,22,0.72), rgba(5,12,22,0.78)),
+      url('/bg.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+    color: var(--parchment); font-family: Georgia, 'Times New Roman', serif;
+    margin: 0; padding: 24px 16px 60px; display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh;
+  }
+  h1 { font-size: 30px; letter-spacing: 2px; color: var(--brass-bright); text-align: center; margin: 0 0 2px; font-weight: 600; }
+  .subtitle { color: #E0C477; font-style: normal; font-size: 14px; margin-bottom: 4px; text-align: center; }
+  .subtitle2 { color: #8a8172; font-size: 12px; margin-bottom: 20px; text-align: center; letter-spacing: 0.5px; }
+  .divider { width: 300px; height: 1px; background: linear-gradient(to right, transparent, var(--brass), transparent); margin: 6px 0 22px; }
+
+  #gate {
+    background: var(--panel); backdrop-filter: blur(5px);
+    border: 1px solid var(--brass); border-radius: 8px;
+    padding: 36px 40px; max-width: 420px; text-align: center;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  }
+  #gate p { color: #c2b89f; font-size: 14px; line-height: 1.6; }
+  #gate input {
+    width: 100%; padding: 10px 12px; margin: 16px 0; font-size: 15px;
+    border: 1px solid var(--brass); border-radius: 4px; background: var(--parchment);
+    color: var(--ink); font-family: Georgia, serif;
+  }
+  #gate button, button.action {
+    background: linear-gradient(180deg, #1c3855, #10243a); color: #F7F2E8;
+    border: 1px solid var(--brass); padding: 10px 22px; font-family: Georgia, serif;
+    font-size: 14px; letter-spacing: 0.5px; border-radius: 4px; cursor: pointer;
+  }
+  #gate button:hover, button.action:hover { background: linear-gradient(180deg, #294d70, #17314d); }
+  button.action:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .layout { display: none; gap: 26px; flex-wrap: wrap; justify-content: center; max-width: 1400px; width: 100%; }
+  .layout.show { display: flex; }
+  .board-wrap { background: var(--panel); backdrop-filter: blur(5px); border: 1px solid var(--brass); border-radius: 6px; padding: 16px; overflow: auto; max-width: 100%; box-shadow: 0 0 26px rgba(0,0,0,0.5); }
+  #grid { display: grid; gap: 1px; background: var(--line); }
+  .cell { width: 24px; height: 24px; position: relative; background: var(--cell-block); }
+  .cell.open { background: var(--cell-empty); }
+  .cell.open.inword { background: var(--cell-word); }
+  .cell.open.active { background: var(--cell-active); }
+  .cell input {
+    width: 100%; height: 100%; border: none; background: transparent; text-align: center;
+    font-family: Georgia, serif; font-weight: bold; font-size: 13px; color: var(--ink);
+    text-transform: uppercase; outline: none; padding: 0;
+  }
+  .cell.correct { background: var(--cell-correct) !important; }
+  .cell.wrong { background: var(--cell-wrong) !important; }
+  .cell.correct input, .cell.wrong input { color: #EDE5D3; }
+  .cell .num { position: absolute; top: 0px; left: 1px; font-size: 6px; color: #555; font-family: Arial, sans-serif; font-weight: bold; pointer-events: none; }
+  .clues-panel { background: var(--panel); backdrop-filter: blur(5px); border: 1px solid var(--brass); border-radius: 6px; padding: 18px 22px; min-width: 300px; max-width: 380px; max-height: 640px; overflow-y: auto; }
+  .clues-panel h2 { color: var(--brass-bright); font-size: 17px; border-bottom: 1px solid var(--wine); padding-bottom: 6px; margin-top: 0; letter-spacing: 1px; font-weight: 600; }
+  .clue-item { font-size: 13px; padding: 5px 6px; border-radius: 3px; cursor: pointer; line-height: 1.4; color: #c9bfa4; }
+  .clue-item:hover, .clue-item.highlighted { background: rgba(183,163,105,0.16); color: #fff; }
+  .clue-item b { color: var(--brass-bright); margin-right: 4px; }
+  .controls { display: flex; gap: 12px; margin: 18px 0 6px; flex-wrap: wrap; justify-content: center; }
+  #status { text-align: center; font-size: 14px; color: var(--brass-bright); min-height: 20px; margin-top: 4px; }
+  #timer { text-align: center; font-size: 14px; color: #b0a685; margin-bottom: 10px; }
+  .locked-banner { text-align: center; color: var(--brass-bright); font-size: 14px; margin: 10px 0; }
+
+  #leaderboard { display: none; background: var(--panel); backdrop-filter: blur(5px); border: 1px solid var(--brass); border-radius: 8px; padding: 24px 30px; max-width: 720px; width: 100%; }
+  #leaderboard.show { display: block; }
+  #leaderboard h2 { color: var(--brass-bright); text-align: center; font-weight: 600; }
+  table.lb { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  table.lb th, table.lb td { border-bottom: 1px solid #3a352a; padding: 8px 10px; text-align: left; font-size: 14px; }
+  table.lb th { color: var(--brass-bright); }
+  table.lb td { color: #c9bfa4; }
+  .topBtns { display: flex; gap: 10px; margin-bottom: 16px; justify-content: center; }
+  @media (max-width: 900px) { .layout { flex-direction: column; align-items: center; } .clues-panel { max-width: 100%; } }
+</style>
+</head>
+<body>
+
+<h1>VENTURIUM</h1>
+<div class="subtitle">BEST MANAGEMENT TEAM</div>
+<div class="subtitle2">BQUIZ ROUND</div>
+<div class="divider"></div>
+
+<div id="gate">
+  <p>Enter your team name and access password to begin. You have 10 minutes to complete the crossword.</p>
+  <input type="text" id="teamNameInput" placeholder="Team name" autocomplete="off" maxlength="60">
+  <input type="password" id="participantPassword" placeholder="Access password" autocomplete="off">
+  <div id="gateError" style="min-height:18px;color:#f0b6a9;font-size:13px;margin:0 0 10px;"></div>
+  <br>
+  <button id="startBtn">START BQUIZ ROUND</button>
+</div>
+
+<div class="layout" id="mainLayout">
+  <div class="board-wrap">
+    <div id="timer"></div>
+    <div id="grid"></div>
+    <div class="locked-banner" id="lockedBanner" style="display:none;">Your answers have been submitted and locked.</div>
+  </div>
+  <div class="clues-panel">
+    <h2>ACROSS</h2>
+    <div id="across-list"></div>
+    <h2 style="margin-top:18px;">DOWN</h2>
+    <div id="down-list"></div>
+  </div>
+</div>
+
+<div class="controls" id="controlsRow" style="display:none;">
+  <button class="action" id="submitBtn">Submit Final Answers</button>
+  
+</div>
+<div id="status"></div>
+
+<div id="leaderboard">
+  <div class="topBtns">
+    <button class="action" id="refreshLbBtn">Refresh</button>
+  </div>
+  <h2 id="lbHeading">Host Dashboard — Venturium BQuiz Round</h2>
+  <div id="lbAutoNote" style="text-align:center; font-size:12px; color:#8a8172; margin-top:-6px; margin-bottom:10px;">Auto-refreshing every 8 seconds</div>
+  <table class="lb">
+    <thead><tr><th>#</th><th>Team</th><th>Score</th><th>Submitted At</th></tr></thead>
+    <tbody id="lbBody"></tbody>
+  </table>
+</div>
+
+<script>
+let DATA = null;
+let width, height, grid, numbers, across, down;
+let cellMeta = [];
+let inputRefs = [];
+let currentDir = 'A', currentWordIdx = -1, teamName = '', locked = false, startTime = null, timerInterval = null;
+
+const urlParams = new URLSearchParams(window.location.search);
+const isHost = urlParams.get('host') === '1';
+const session = urlParams.get('session') || 'main';
+
+async function init() {
+  const res = await fetch('/layout.json');
+  DATA = await res.json();
+  ({ width, height, grid, numbers, across, down } = DATA);
+
+  cellMeta = [];
+  for (let r = 0; r < height; r++) cellMeta.push(new Array(width).fill(null));
+  function fillWordCells(entry, idx, dir) {
+    const { row, col, answer } = entry;
+    for (let i = 0; i < answer.length; i++) {
+      const r = row + (dir === 'D' ? i : 0);
+      const c = col + (dir === 'A' ? i : 0);
+      if (!cellMeta[r][c]) cellMeta[r][c] = {};
+      if (dir === 'A') cellMeta[r][c].across = idx; else cellMeta[r][c].down = idx;
+    }
+  }
+  across.forEach((e, i) => fillWordCells(e, i, 'A'));
+  down.forEach((e, i) => fillWordCells(e, i, 'D'));
+
+  if (isHost) {
+    document.getElementById('gate').style.display = 'block';
+    document.getElementById('teamNameInput').style.display = 'none';
+    document.getElementById('startBtn').textContent = 'OPEN HOST DASHBOARD';
+    document.querySelector('#gate p').textContent = 'Host access only. Enter your private host password.';
+    document.getElementById('participantPassword').placeholder = 'Host password';
+    document.getElementById('startBtn').addEventListener('click', onHostLogin);
+    return;
+  }
+
+  buildGrid();
+  buildClueLists();
+  document.getElementById('startBtn').addEventListener('click', onStart);
+  document.getElementById('submitBtn').addEventListener('click', () => {
+    if (confirm('Submit final answers? You will not be able to edit after this.')) submitAnswers();
+  });
+}
+
+function buildGrid() {
+  const gridEl = document.getElementById('grid');
+  gridEl.style.gridTemplateColumns = `repeat(${width}, 24px)`;
+  gridEl.style.gridTemplateRows = `repeat(${height}, 24px)`;
+  for (let r = 0; r < height; r++) inputRefs.push(new Array(width).fill(null));
+
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      const cellDiv = document.createElement('div');
+      const isOpen = grid[r][c] !== null;
+      cellDiv.className = 'cell' + (isOpen ? ' open' : '');
+      if (isOpen) {
+        const num = numbers[r][c];
+        if (num) {
+          const numSpan = document.createElement('span');
+          numSpan.className = 'num'; numSpan.textContent = num;
+          cellDiv.appendChild(numSpan);
+        }
+        const input = document.createElement('input');
+        input.maxLength = 1; input.dataset.row = r; input.dataset.col = c;
+        input.autocomplete = 'off'; input.spellcheck = false;
+        cellDiv.appendChild(input);
+        inputRefs[r][c] = input;
+        input.addEventListener('focus', () => selectCell(r, c, null));
+        input.addEventListener('click', () => selectCell(r, c, null));
+        input.addEventListener('keydown', (e) => handleKeydown(e, r, c));
+        input.addEventListener('input', (e) => handleInput(e, r, c));
+      }
+      cellDiv.dataset.row = r; cellDiv.dataset.col = c;
+      gridEl.appendChild(cellDiv);
+    }
+  }
+}
+function getCellDiv(r, c) { return document.getElementById('grid').children[r * width + c]; }
+
+function selectCell(r, c, forceDir) {
+  const meta = cellMeta[r][c];
+  if (!meta) return;
+  if (forceDir) { currentDir = forceDir; }
+  else {
+    if (meta.across !== undefined && meta.down !== undefined) {
+      if (window.__lastSel && window.__lastSel.r === r && window.__lastSel.c === c) currentDir = currentDir === 'A' ? 'D' : 'A';
+      else if (currentDir === 'A' && meta.across === undefined) currentDir = 'D';
+      else if (currentDir === 'D' && meta.down === undefined) currentDir = 'A';
+    } else if (meta.across !== undefined) currentDir = 'A';
+    else if (meta.down !== undefined) currentDir = 'D';
+  }
+  window.__lastSel = { r, c };
+  currentWordIdx = currentDir === 'A' ? meta.across : meta.down;
+  highlightWord();
+}
+function highlightWord() {
+  for (let r = 0; r < height; r++) for (let c = 0; c < width; c++) {
+    const div = getCellDiv(r, c);
+    if (div) { div.classList.remove('inword'); div.classList.remove('active'); }
+  }
+  document.querySelectorAll('.clue-item').forEach(el => el.classList.remove('highlighted'));
+  if (currentWordIdx < 0) return;
+  const list = currentDir === 'A' ? across : down;
+  const entry = list[currentWordIdx];
+  if (!entry) return;
+  for (let i = 0; i < entry.answer.length; i++) {
+    const r = entry.row + (currentDir === 'D' ? i : 0);
+    const c = entry.col + (currentDir === 'A' ? i : 0);
+    const div = getCellDiv(r, c);
+    if (div) div.classList.add('inword');
+  }
+  if (window.__lastSel) { const div = getCellDiv(window.__lastSel.r, window.__lastSel.c); if (div) div.classList.add('active'); }
+  const clueEl = document.getElementById((currentDir === 'A' ? 'a-' : 'd-') + entry.number);
+  if (clueEl) { clueEl.classList.add('highlighted'); clueEl.scrollIntoView({ block: 'nearest' }); }
+}
+function handleInput(e, r, c) {
+  if (locked) return;
+  const val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+  e.target.value = val;
+  if (val) moveNext(r, c);
+}
+function moveNext(r, c) {
+  if (currentDir === 'A') { if (c + 1 < width && cellMeta[r][c+1]) inputRefs[r][c+1].focus(); }
+  else { if (r + 1 < height && cellMeta[r+1] && cellMeta[r+1][c]) inputRefs[r+1][c].focus(); }
+}
+function movePrev(r, c) {
+  if (currentDir === 'A') { if (c - 1 >= 0 && cellMeta[r][c-1]) inputRefs[r][c-1].focus(); }
+  else { if (r - 1 >= 0 && cellMeta[r-1] && cellMeta[r-1][c]) inputRefs[r-1][c].focus(); }
+}
+function handleKeydown(e, r, c) {
+  if (locked) { e.preventDefault(); return; }
+  if (e.key === 'Backspace') { if (!e.target.value) { e.preventDefault(); movePrev(r, c); } }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); if (c+1<width && cellMeta[r][c+1]) inputRefs[r][c+1].focus(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); if (c-1>=0 && cellMeta[r][c-1]) inputRefs[r][c-1].focus(); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); if (r+1<height && cellMeta[r+1] && cellMeta[r+1][c]) inputRefs[r+1][c].focus(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); if (r-1>=0 && cellMeta[r-1] && cellMeta[r-1][c]) inputRefs[r-1][c].focus(); }
+}
+
+function buildClueLists() {
+  const acrossListEl = document.getElementById('across-list');
+  across.forEach((e, i) => {
+    const div = document.createElement('div'); div.className = 'clue-item'; div.id = 'a-' + e.number;
+    div.innerHTML = `<b>${e.number}.</b> ${e.clue} <i style="opacity:0.6;">(${e.answer.length})</i>`;
+    div.addEventListener('click', () => { inputRefs[e.row][e.col].focus(); selectCell(e.row, e.col, 'A'); });
+    acrossListEl.appendChild(div);
+  });
+  const downListEl = document.getElementById('down-list');
+  down.forEach((e, i) => {
+    const div = document.createElement('div'); div.className = 'clue-item'; div.id = 'd-' + e.number;
+    div.innerHTML = `<b>${e.number}.</b> ${e.clue} <i style="opacity:0.6;">(${e.answer.length})</i>`;
+    div.addEventListener('click', () => { inputRefs[e.row][e.col].focus(); selectCell(e.row, e.col, 'D'); });
+    downListEl.appendChild(div);
+  });
+}
+
+function computeScore() {
+  let total = across.length + down.length, correct = 0;
+  function checkEntry(entry, dir) {
+    for (let i = 0; i < entry.answer.length; i++) {
+      const r = entry.row + (dir === 'D' ? i : 0);
+      const c = entry.col + (dir === 'A' ? i : 0);
+      if (inputRefs[r][c].value !== grid[r][c]) return false;
+    }
+    return true;
+  }
+  across.forEach(e => { if (checkEntry(e, 'A')) correct++; });
+  down.forEach(e => { if (checkEntry(e, 'D')) correct++; });
+  return { correct, total };
+}
+function markGrid() {
+  for (let r = 0; r < height; r++) for (let c = 0; c < width; c++) {
+    if (grid[r][c]) {
+      const input = inputRefs[r][c]; const div = getCellDiv(r, c);
+      div.classList.remove('correct','wrong');
+      if (input.value === grid[r][c]) div.classList.add('correct');
+      else if (input.value) div.classList.add('wrong');
+    }
+  }
+}
+function getGridState() {
+  const state = [];
+  for (let r = 0; r < height; r++) {
+    const rowVals = [];
+    for (let c = 0; c < width; c++) rowVals.push(grid[r][c] ? (inputRefs[r][c].value || '') : null);
+    state.push(rowVals);
+  }
+  return state;
+}
+function loadGridState(state) {
+  for (let r = 0; r < height; r++) for (let c = 0; c < width; c++) {
+    if (grid[r][c] && state[r] && state[r][c]) inputRefs[r][c].value = state[r][c];
+  }
+}
+function lockGrid() {
+  locked = true;
+  for (let r = 0; r < height; r++) for (let c = 0; c < width; c++) {
+    if (grid[r][c]) inputRefs[r][c].disabled = true;
+  }
+  document.getElementById('lockedBanner').style.display = 'block';
+  document.getElementById('submitBtn').disabled = true;
+  if (timerInterval) clearInterval(timerInterval);
+}
+function startTimer() {
+  startTime = Date.now();
+  const limitSeconds = 10 * 60;
+  const tick = () => {
+    if (locked) return;
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const remaining = Math.max(0, limitSeconds - elapsed);
+    const m = Math.floor(remaining / 60), s = remaining % 60;
+    document.getElementById('timer').textContent = `TIME REMAINING  ${m}:${s.toString().padStart(2,'0')}`;
+    if (remaining <= 60) document.getElementById('timer').style.color = '#ffb6a9';
+    if (remaining <= 0) {
+      document.getElementById('status').textContent = 'Time is up — submitting your answers automatically.';
+      submitAnswers();
+    }
+  };
+  tick();
+  timerInterval = setInterval(tick, 1000);
+}
+
+async function submitAnswers() {
+  if (locked) return;
+  const { correct, total } = computeScore();
+  markGrid();
+  const elapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : null;
+  try {
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team: teamName, grid: getGridState(), score: correct, total, elapsedSeconds: elapsed, session })
+    });
+    const record = await res.json();
+    document.getElementById('status').textContent = `Submitted! Score: ${record.score} / ${record.total} words correct.`;
+    lockGrid();
+  } catch (err) {
+    document.getElementById('status').textContent = 'Error submitting — please check your connection and try again.';
+    console.error(err);
+  }
+}
+
+async function checkExistingSubmission(name) {
+  try {
+    const res = await fetch('/api/submission/' + encodeURIComponent(name) + '?session=' + encodeURIComponent(session));
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return null;
+}
+
+async function onStart() {
+  const name = document.getElementById('teamNameInput').value.trim();
+  const password = document.getElementById('participantPassword').value;
+  const err = document.getElementById('gateError');
+  err.textContent = '';
+  if (!name) { err.textContent = 'Please enter your team name.'; return; }
+  try {
+    const auth = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({role:'participant', password}) });
+    if (!auth.ok) { err.textContent = 'Incorrect access password.'; return; }
+  } catch(e) { err.textContent = 'Unable to verify password. Please try again.'; return; }
+  teamName = name;
+  const existing = await checkExistingSubmission(name);
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('mainLayout').classList.add('show');
+  document.getElementById('controlsRow').style.display = 'flex';
+  if (existing) {
+    loadGridState(existing.grid);
+    markGrid();
+    document.getElementById('status').textContent = `Already submitted. Score: ${existing.score} / ${existing.total}.`;
+    lockGrid();
+  } else {
+    startTimer();
+  }
+  if (across.length) selectCell(across[0].row, across[0].col, 'A');
+}
+
+async function onHostLogin() {
+  const password = document.getElementById('participantPassword').value;
+  const err = document.getElementById('gateError');
+  err.textContent = '';
+  try {
+    const res = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({role:'host', password}) });
+    if (!res.ok) { err.textContent = 'Incorrect host password.'; return; }
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('leaderboard').classList.add('show');
+    document.getElementById('lbHeading').textContent = 'VENTURIUM — Host Dashboard | Session: ' + session;
+    loadLeaderboard();
+    setInterval(loadLeaderboard, 5000);
+  } catch(e) { err.textContent = 'Unable to verify host password.'; }
+}
+
+async function loadLeaderboard() {
+  const tbody = document.getElementById('lbBody');
+  try {
+    const res = await fetch('/api/leaderboard?session=' + encodeURIComponent(session));
+    const records = await res.json();
+    if (!records.length) {
+      tbody.innerHTML = '<tr><td colspan="4">No submissions yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = records.map((r, i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${r.team}</td>
+        <td>${r.score} / ${r.total}</td>
+        <td>${new Date(r.submittedAt).toLocaleTimeString()}</td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="4">Error loading leaderboard.</td></tr>';
+    console.error(err);
+  }
+}
+document.getElementById('refreshLbBtn').addEventListener('click', loadLeaderboard);
+
+init();
+</script>
+</body>
+</html>
